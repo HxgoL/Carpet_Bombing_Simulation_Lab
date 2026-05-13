@@ -1,0 +1,32 @@
+[project]
+name = "carpet-bombing-simulation-lab"
+version = "0.1.0"
+description = "Experimental platform for carpet bombing DDoS detection and mitigation"
+authors = [
+    { name = "Hugo" }
+]
+readme = "README.md"
+requires-python = ">=3.12,<3.13"
+dependencies = [
+    "scapy>=2.6.0,<3.0.0",
+    "pandas>=2.2.0,<3.0.0",
+    "numpy>=1.26.0,<3.0.0",
+    "matplotlib>=3.8.0,<4.0.0",
+    "scikit-learn>=1.4.0,<2.0.0",
+    "pyshark>=0.6,<1.0.0",
+    "jupyter>=1.0.0,<2.0.0"
+]
+
+[tool.poetry]
+packages = [
+    { include = "carpet_bombing", from = "src" }
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0.0,<10.0.0"
+]
+
+[build-system]
+requires = ["poetry-core>=2.0.0,<3.0.0"]
+build-backend = "poetry.core.masonry.api"

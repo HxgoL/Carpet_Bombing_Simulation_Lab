@@ -1,13 +1,36 @@
 # macOS
 .DS_Store
 
+# Windows
+Thumbs.db
+Desktop.ini
+
 # Python
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.python-version
+
+# Build and packaging
+build/
+dist/
+*.egg
+
+# Tests and coverage
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+.tox/
+.nox/
 
 # Virtual environment
 .venv/
 venv/
+env/
+ENV/
 
 # Jupyter
 .ipynb_checkpoints/
@@ -16,10 +39,16 @@ venv/
 .vscode/
 .idea/
 
+# Local configuration
+.env
+.env.*
+
 # Captures and generated data
 *.pcap
 *.pcapng
 *.csv
+*.log
 
 # Results
 results/
+outputs/
