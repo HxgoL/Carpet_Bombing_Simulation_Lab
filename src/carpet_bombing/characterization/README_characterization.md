@@ -35,3 +35,17 @@ Ils pourront contenir :
 - statistiques ;
 - graphiques ;
 - observations pour le rapport final.
+
+## Capture V0.1
+
+Pour capturer automatiquement le trafic d'une simulation pendant une duree fixe :
+
+```bash
+sudo python3 src/carpet_bombing/characterization/capture_packets.py \
+  --interface any \
+  --duration 20 \
+  --output src/carpet_bombing/simulations/simulation_v0.1/pcaps/capture_v0_1.pcap
+```
+
+Le script reste independant de la version de simulation : il suffit de changer le
+chemin `--output` pour enregistrer la capture dans le dossier voulu.
