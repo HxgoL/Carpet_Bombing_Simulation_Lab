@@ -2,6 +2,9 @@ from abc import ABC, abstractmethod
 
 from carpet_bombing.mitigation.config import MitigationConfig
 from carpet_bombing.mitigation.models import MitigationAction, MitigationEvent
+from carpet_bombing.mitigation.strategies.dynamic_filtering import (
+    DynamicFilteringStrategy,
+)
 
 
 class MitigationPolicy(ABC):
@@ -12,31 +15,18 @@ class MitigationPolicy(ABC):
         """Return a mitigation action, or None if no action is required."""
 
 
-class PrefixRateLimitPolicy(MitigationPolicy):
-    """Prepare a rate-limit action when prefix-level traffic looks suspicious."""
+class AdaptiveMitigationPolicy(MitigationPolicy):
+    """Choose the available mitigation strategy for the current event."""
 
     def __init__(self, config: MitigationConfig | None = None):
         self.config = config or MitigationConfig()
+        self.dynamic_filtering = DynamicFilteringStrategy(self.config)
 
     def decide(self, event: MitigationEvent) -> MitigationAction | None:
-        is_attack = event.label != "normal"
-        exceeds_rate = event.packets_per_second >= self.config.max_packets_per_second
-        exceeds_fanout = event.unique_dst_count >= self.config.max_unique_destinations
-
-        if not is_attack and not (exceeds_rate and exceeds_fanout):
+        if event.label == "normal":
             return None
 
-        return MitigationAction(
-            action_type="prefix_rate_limit",
-            target=event.target_prefix,
-            reason=(
-                "Suspicious prefix-level traffic: "
-                f"label={event.label}, "
-                f"pps={event.packets_per_second}, "
-                f"unique_dst={event.unique_dst_count}"
-            ),
-            parameters={
-                "max_packets_per_second": self.config.max_packets_per_second,
-                "dry_run": self.config.dry_run,
-            },
-        )
+        if self.dynamic_filtering.supports(event):
+            return self.dynamic_filtering.build_action(event)
+
+        return None

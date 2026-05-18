@@ -1,7 +1,7 @@
 from carpet_bombing.mitigation.backends.base import MitigationBackend
 from carpet_bombing.mitigation.backends.dry_run import DryRunBackend
 from carpet_bombing.mitigation.models import MitigationAction, MitigationEvent
-from carpet_bombing.mitigation.policies import MitigationPolicy, PrefixRateLimitPolicy
+from carpet_bombing.mitigation.policies import AdaptiveMitigationPolicy, MitigationPolicy
 
 
 class MitigationController:
@@ -12,7 +12,7 @@ class MitigationController:
         policy: MitigationPolicy | None = None,
         backend: MitigationBackend | None = None,
     ):
-        self.policy = policy or PrefixRateLimitPolicy()
+        self.policy = policy or AdaptiveMitigationPolicy()
         self.backend = backend or DryRunBackend()
 
     def handle_event(self, event: MitigationEvent) -> MitigationAction | None:

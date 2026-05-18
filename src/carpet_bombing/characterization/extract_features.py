@@ -52,6 +52,32 @@ def parse_args():
         default="10.0.0.20-10.0.0.40",
         help="Comma-separated inactive IP ranges, for example 10.0.0.20-10.0.0.40.",
     )
+    parser.add_argument(
+        "--attack-src-ip",
+        default=None,
+        help="Source IP used to identify attack flows in mixed captures.",
+    )
+    parser.add_argument(
+        "--attack-targets",
+        default=None,
+        help="Attack destination IPs or ranges, for example 10.0.0.1-10.0.0.8.",
+    )
+    parser.add_argument(
+        "--attack-protocol",
+        choices=["ICMP", "TCP", "UDP"],
+        default=None,
+        help="Protocol used to identify attack flows in mixed captures.",
+    )
+    parser.add_argument(
+        "--attack-label",
+        default="carpet_udp",
+        help="Label assigned to flows matching the attack criteria.",
+    )
+    parser.add_argument(
+        "--background-label",
+        default="normal",
+        help="Label assigned to flows that do not match attack criteria in mixed captures.",
+    )
     return parser.parse_args()
 
 
@@ -68,7 +94,13 @@ def iter_pcap_files(input_path):
 
 
 def parse_inactive_ranges(raw_ranges):
-    inactive_ips = set()
+    return parse_ip_ranges(raw_ranges)
+
+def parse_ip_ranges(raw_ranges):
+    ips = set()
+
+    if not raw_ranges:
+        return ips
 
     for raw_range in raw_ranges.split(","):
         value = raw_range.strip()
@@ -76,7 +108,7 @@ def parse_inactive_ranges(raw_ranges):
             continue
 
         if "-" not in value:
-            inactive_ips.add(str(ipaddress.ip_address(value)))
+            ips.add(str(ipaddress.ip_address(value)))
             continue
 
         start_raw, end_raw = value.split("-", maxsplit=1)
@@ -87,9 +119,9 @@ def parse_inactive_ranges(raw_ranges):
             raise ValueError(f"Invalid inactive IP range: {value}")
 
         for ip_int in range(int(start), int(end) + 1):
-            inactive_ips.add(str(ipaddress.ip_address(ip_int)))
+            ips.add(str(ipaddress.ip_address(ip_int)))
 
-    return inactive_ips
+    return ips
 
 
 def infer_label(pcap_file):
@@ -121,7 +153,33 @@ def packet_protocol(packet):
     return str(packet[IP].proto), "", ""
 
 
-def extract_pcap_features(pcap_file, window_size, label, inactive_ips):
+def is_attack_flow(src_ip, dst_ip, protocol, attack_config):
+    if not attack_config:
+        return False
+
+    if attack_config["src_ip"] and src_ip != attack_config["src_ip"]:
+        return False
+
+    if attack_config["protocol"] and protocol != attack_config["protocol"]:
+        return False
+
+    if attack_config["targets"] and dst_ip not in attack_config["targets"]:
+        return False
+
+    return True
+
+
+def resolve_flow_label(default_label, src_ip, dst_ip, protocol, attack_config):
+    if not attack_config:
+        return default_label
+
+    if is_attack_flow(src_ip, dst_ip, protocol, attack_config):
+        return attack_config["attack_label"]
+
+    return attack_config["background_label"]
+
+
+def extract_pcap_features(pcap_file, window_size, label, inactive_ips, attack_config):
     flows = defaultdict(lambda: {"packet_count": 0, "byte_count": 0})
     src_window_destinations = defaultdict(set)
 
@@ -136,6 +194,13 @@ def extract_pcap_features(pcap_file, window_size, label, inactive_ips):
             src_ip = packet[IP].src
             dst_ip = packet[IP].dst
             protocol, src_port, dst_port = packet_protocol(packet)
+            flow_label = resolve_flow_label(
+                default_label=label,
+                src_ip=src_ip,
+                dst_ip=dst_ip,
+                protocol=protocol,
+                attack_config=attack_config,
+            )
 
             flow_key = (
                 window_start,
@@ -145,6 +210,7 @@ def extract_pcap_features(pcap_file, window_size, label, inactive_ips):
                 protocol,
                 src_port,
                 dst_port,
+                flow_label,
             )
 
             flows[flow_key]["packet_count"] += 1
@@ -161,6 +227,7 @@ def extract_pcap_features(pcap_file, window_size, label, inactive_ips):
             protocol,
             src_port,
             dst_port,
+            flow_label,
         ) = flow_key
 
         packet_count = counters["packet_count"]
@@ -182,7 +249,7 @@ def extract_pcap_features(pcap_file, window_size, label, inactive_ips):
                     src_window_destinations[(window_start, src_ip)]
                 ),
                 "is_dst_inactive": int(dst_ip in inactive_ips),
-                "label": label,
+                "label": flow_label,
                 "pcap_file": pcap_file.name,
             }
         )
@@ -204,6 +271,17 @@ def main():
     args = parse_args()
     pcap_files = iter_pcap_files(args.input)
     inactive_ips = parse_inactive_ranges(args.inactive_ranges)
+    attack_targets = parse_ip_ranges(args.attack_targets)
+    attack_config = None
+
+    if args.attack_src_ip or args.attack_protocol or attack_targets:
+        attack_config = {
+            "src_ip": args.attack_src_ip,
+            "targets": attack_targets,
+            "protocol": args.attack_protocol,
+            "attack_label": args.attack_label,
+            "background_label": args.background_label,
+        }
 
     if not pcap_files:
         raise FileNotFoundError(f"No pcap files found in {args.input}")
@@ -217,6 +295,7 @@ def main():
                 window_size=args.window_size,
                 label=label,
                 inactive_ips=inactive_ips,
+                attack_config=attack_config,
             )
         )
 
