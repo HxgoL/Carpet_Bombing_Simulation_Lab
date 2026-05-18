@@ -1,0 +1,149 @@
+services:
+  attacker:
+    build: ./attacker #"construis une image depuis le dossier ./attacker"
+    container_name: cb_attacker
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.10
+    volumes:
+    - ./data:/app/data
+    environment:
+      VICTIME_COUNT: ${VICTIM_COUNT:-16}
+      VICTIME_START_IP: ${VICTIM_START_IP:-10.10.0.101}
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN #droit admin reseau
+
+  monitor:
+    build: ./monitor
+    container_name: cb_monitor
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.20
+    volumes:
+      - ./data:/app/data
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+
+  victim01: &victim
+      build: ./victim
+      container_name: cb_victim01
+      environment:
+        VICTIM_MODE: ${VICTIM_MODE:-nginx}
+      networks:
+        lab_net:
+          ipv4_address: 10.10.0.101
+
+  victim02:
+    <<: *victim
+    container_name: cb_victim02
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.102
+
+  victim03:
+    <<: *victim
+    container_name: cb_victim03
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.103
+
+  victim04:
+    <<: *victim
+    container_name: cb_victim04
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.104
+
+  victim05:
+    <<: *victim
+    container_name: cb_victim05
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.105
+
+  victim06:
+    <<: *victim
+    container_name: cb_victim06
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.106
+
+  victim07:
+    <<: *victim
+    container_name: cb_victim07
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.107
+
+  victim08:
+    <<: *victim
+    container_name: cb_victim08
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.108
+
+  victim09:
+    <<: *victim
+    container_name: cb_victim09
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.109
+
+  victim10:
+    <<: *victim
+    container_name: cb_victim10
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.110
+
+  victim11:
+    <<: *victim
+    container_name: cb_victim11
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.111
+
+  victim12:
+    <<: *victim
+    container_name: cb_victim12
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.112
+
+  victim13:
+    <<: *victim
+    container_name: cb_victim13
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.113
+
+  victim14:
+    <<: *victim
+    container_name: cb_victim14
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.114
+
+  victim15:
+    <<: *victim
+    container_name: cb_victim15
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.115
+
+  victim16:
+    <<: *victim
+    container_name: cb_victim16
+    networks:
+      lab_net:
+        ipv4_address: 10.10.0.116
+
+networks:
+  lab_net:
+    name: lab_net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.0.0/24

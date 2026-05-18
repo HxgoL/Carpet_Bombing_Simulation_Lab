@@ -1,0 +1,196 @@
+services:
+
+  attacker:
+    build: ./attacker
+    container_name: cb_attacker
+    networks:
+      attack_net:
+        ipv4_address: 10.10.1.10
+      volumes: # pour enregistrer, partager un dossier entre : ta machine réelle et le conteneur Docker
+        - ./data:app/data #le : c'est la séparation entre le chemin de ta machine réelle et le chemin dans le conteneur Docker
+    environment: # sert à envoyer des variables d’environnement Linux dans le conteneur.
+      VICTIM_COUNT: ${VICTIM_COUNT:-16}
+      VICTIM_START_IP: ${VICTIM_START_IP:-10.10.3.101}
+    cap_add:
+      - NET_RAW
+      - NET_ADMIN
+
+  isp_router:
+    build: ./router
+    container_name: cb_isp_router
+    networks:
+      - attack_net:
+        ipv4_address: 10.10.1.1
+      - transit_net:
+        ipv4_address: 10.10.2.1
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    sysctls:
+      - net.ipv4.ip_forward=1 #permet de faire du routage entre les réseaux Docker
+
+  edge_router:
+    build: ./router
+    container_name: cb_edge_router
+    networks:
+      - transit_net:
+        ipv4_address: 10.10.2.2
+      - victim_net:
+        ipv4_address: 10.10.3.1
+    volumes:
+      - ./data:/app/data
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW
+    sysctls:
+      - net.ipv4.ip_forward=1  
+
+  monitor:
+    build: ./monitor
+    container_name: cb_monitor
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.20
+    volumes:
+      - ./data:/app/data
+    cap_add:
+      - NET_ADMIN
+      - NET_RAW    
+
+# ON définit les victimes sur leur réseau
+  victim01: &victim
+    build: ./victim
+    container_name: cb_victim01
+    environment:
+      VICTIM_MODE: ${VICTIM_MODE:-nginx}
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.101
+
+  victim02:
+    <<: *victim
+    container_name: cb_victim02
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.102
+
+  victim03:
+    <<: *victim
+    container_name: cb_victim03
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.103
+
+  victim04:
+    <<: *victim
+    container_name: cb_victim04
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.104
+
+  victim05:
+    <<: *victim
+    container_name: cb_victim05
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.105
+
+  victim06:
+    <<: *victim
+    container_name: cb_victim06
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.106
+
+  victim07:
+    <<: *victim
+    container_name: cb_victim07
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.107
+
+  victim08:
+    <<: *victim
+    container_name: cb_victim08
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.108
+
+  victim09:
+    <<: *victim
+    container_name: cb_victim09
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.109
+
+  victim10:
+    <<: *victim
+    container_name: cb_victim10
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.110
+
+  victim11:
+    <<: *victim
+    container_name: cb_victim11
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.111
+
+  victim12:
+    <<: *victim
+    container_name: cb_victim12
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.112
+
+  victim13:
+    <<: *victim
+    container_name: cb_victim13
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.113
+
+  victim14:
+    <<: *victim
+    container_name: cb_victim14
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.114
+
+  victim15:
+    <<: *victim
+    container_name: cb_victim15
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.115
+
+  victim16:
+    <<: *victim
+    container_name: cb_victim16
+    networks:
+      victim_net:
+        ipv4_address: 10.10.3.116
+
+
+networks: #Définition du réseau Docker pour l'attaque
+  attack_net:
+    name: cb_attack_net
+    driver: bridge #bridge est le driver par défaut pour les réseaux Docker, il permet aux conteneurs de communiquer entre eux sur le même hôte.
+    ipam:
+      config:
+        - subnet:10.10.1.0/24 #Définition de la plage d'adresses IP pour le réseau Docker, ici
+
+  transit_net:
+    name: cb_transit_net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.2.0/24
+
+  victim_net:
+    name: cb_victim_net
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 10.10.3.0/24
