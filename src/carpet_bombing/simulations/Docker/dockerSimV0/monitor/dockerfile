@@ -1,12 +1,10 @@
 FROM python:3.11-slim
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tcpdump tshark iproute2 \
+    tcpdump iproute2 \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
-
-RUN pip install --no-cache-dir pandas
 
 COPY capture.sh /app/capture.sh
 
