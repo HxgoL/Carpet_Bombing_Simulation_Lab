@@ -54,9 +54,29 @@ a4 -> 10.0.0.61-10.0.0.80
 Le script d'expérience lance automatiquement :
 
 - `tcpdump`
+- le nettoyage Mininet avant chaque scénario
 - la topologie Mininet
 - le scénario normal ou attaque
 - l'arrêt de la capture
+- la vérification du fichier `.pcap`
+
+Déroulement automatique avec `--scenario all` :
+
+```text
+1. nettoyage de Mininet
+2. lancement de la capture normale
+3. lancement de la topologie en mode normal
+4. arrêt automatique de la capture normale
+5. vérification que le pcap normal est lisible
+6. nettoyage de Mininet
+7. lancement de la capture attaque
+8. lancement de la topologie en mode attaque
+9. attente du warmup
+10. lancement automatique des attaques
+11. arrêt automatique de la capture attaque
+12. vérification que le pcap attaque est lisible
+13. nettoyage final
+```
 
 Capture normale :
 

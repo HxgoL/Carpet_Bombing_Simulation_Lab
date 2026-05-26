@@ -34,36 +34,55 @@ def require_root():
         raise SystemExit("Run this script with sudo because Mininet and tcpdump need root privileges.")
 
 def run_command(command):
-    return subprocess.Popen(command, cwd=REPO_ROOT, start_new_session=True)
+    return subprocess.Popen(command, cwd=REPO_ROOT)
 
 def wait_process(process):
     return_code = process.wait()
     if return_code != 0:
         raise SystemExit(f"Command failed with exit code {return_code}: {' '.join(process.args)}")
 
-def wait_tcpdump(process):
+def run_checked(command):
+    result = subprocess.run(command, cwd=REPO_ROOT, stdout=subprocess.DEVNULL)
+    if result.returncode != 0:
+        raise SystemExit(f"Command failed with exit code {result.returncode}: {' '.join(command)}")
+
+def wait_capture(process):
     try:
         return_code = process.wait(timeout=5)
     except subprocess.TimeoutExpired:
         process.kill()
         return_code = process.wait()
     if return_code not in (0, 130, -2, -9):
-        raise SystemExit(f"tcpdump failed with exit code {return_code}")
+        raise SystemExit(f"Capture failed with exit code {return_code}")
+
+def cleanup_mininet():
+    subprocess.run(["mn", "-c"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(["pkill", "-f", "carpet_bombing_attack.py"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    subprocess.run(["pkill", "-f", "normal_traffic.py"], cwd=REPO_ROOT, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+def validate_pcap(pcap_path):
+    run_checked(["tcpdump", "-r", str(pcap_path), "-c", "1"])
+    run_checked(["tcpdump", "-r", str(pcap_path)])
 
 def capture_scenario(scenario, labels, args):
+    cleanup_mininet()
     PCAP_DIR.mkdir(parents=True, exist_ok=True)
     capture_duration = args.duration or labels["capture_duration_seconds"]
     attack_duration = args.attack_duration or labels["attack_duration_seconds"]
     warmup = 0 if scenario == "normal" else args.warmup if args.warmup is not None else 5
     pcap_file = labels[f"{scenario}_capture"]["pcap_file"]
     pcap_path = PCAP_DIR / pcap_file
+    if pcap_path.exists():
+        pcap_path.unlink()
 
-    tcpdump_command = [
-        "timeout",
-        str(capture_duration + 2),
+    capture_command = [
         "tcpdump",
         "-i",
         "any",
+        "-G",
+        str(capture_duration),
+        "-W",
+        "1",
         "-w",
         str(pcap_path),
         CAPTURE_FILTER,
@@ -83,14 +102,16 @@ def capture_scenario(scenario, labels, args):
 
     print(f"\nCapture V4 : {scenario}")
     print(f"  pcap : {pcap_path}")
-    tcpdump = run_command(tcpdump_command)
-    time.sleep(1)
+    capture = run_command(capture_command)
+    time.sleep(0.5)
 
     try:
         topology = run_command(topology_command)
         wait_process(topology)
     finally:
-        wait_tcpdump(tcpdump)
+        wait_capture(capture)
+    validate_pcap(pcap_path)
+    cleanup_mininet()
     print(f"Capture {scenario} terminée")
 
 def main():
