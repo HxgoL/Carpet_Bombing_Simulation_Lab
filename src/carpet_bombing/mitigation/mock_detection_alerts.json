@@ -1,0 +1,41 @@
+{
+  "schema_version": "1.0",
+  "generated_at": "2026-05-27T14:30:00Z",
+  "source": "detection",
+  "alerts": [
+    {
+      "alert_id": "alert-001",
+      "window_start": "2026-05-27T14:29:00Z",
+      "window_end": "2026-05-27T14:30:00Z",
+      "label": "carpet_udp",
+      "severity": "high",
+      "confidence": 0.94,
+      "src_ip": "10.20.0.10",
+      "suspect_sources": ["10.20.0.10", "10.20.0.11", "10.20.0.12"],
+      "dst_prefix": "10.20.1.0/24",
+      "protocol": "UDP",
+      "packet_count": 12000,
+      "byte_count": 8400000,
+      "packets_per_second": 1200.0,
+      "unique_dst_count": 80,
+      "recommended_action": "rate_limit"
+    },
+    {
+      "alert_id": "alert-002",
+      "window_start": "2026-05-27T14:29:00Z",
+      "window_end": "2026-05-27T14:30:00Z",
+      "label": "normal",
+      "severity": "low",
+      "confidence": 0.88,
+      "src_ip": "10.20.0.2",
+      "suspect_sources": ["10.20.0.2"],
+      "dst_prefix": "10.20.1.0/24",
+      "protocol": "ICMP",
+      "packet_count": 12,
+      "byte_count": 7152,
+      "packets_per_second": 12.0,
+      "unique_dst_count": 1,
+      "recommended_action": "monitor"
+    }
+  ]
+}
