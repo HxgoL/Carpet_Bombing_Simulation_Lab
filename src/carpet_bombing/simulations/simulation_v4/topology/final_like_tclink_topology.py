@@ -7,6 +7,9 @@ from mininet.link import TCLink
 from mininet.cli import CLI
 from mininet.log import setLogLevel
 
+from containernet.net import Containernet
+from containernet.node import Docker
+
 ATTACKER_COUNT = 4
 ACTIVE_VICTIM_IPS = [
     "10.0.0.1",
@@ -65,7 +68,7 @@ class LinuxGateway(Node):
 def run(auto_scenario=None, duration=45, attack_duration=30, warmup=5):
     # Création d'un réseau Mininet sans contrôleur SDN
     # link=TCLink permet d'ajouter des contraintes de bande passante, délai et perte
-    net = Mininet(controller=None, switch=OVSBridge, link=TCLink)
+    net = Containernet(controller=None, switch=OVSBridge, link=TCLink)
 
     # Création des deux switchs : s1 côté attaquants, s2 côté victimes
     attacker_switch = net.addSwitch("s1")
@@ -114,6 +117,30 @@ def run(auto_scenario=None, duration=45, attack_duration=30, warmup=5):
         for index, ip_address in enumerate(ACTIVE_VICTIM_IPS, start=1)
     ]
 
+    # Création de serveurs docker
+
+    nginx_server = net.addDocker(
+        "srv_nginx",
+        ip="10.0.0.12/24",
+        dimage="nginx:alpine",
+        defaultRoute=f"via {VICTIM_GATEWAY}",
+    )
+
+    dns_server = net.addDocker(
+        "srv_dns",
+        ip="10.0.0.13/24",
+        dimage="internetsystemsconsortium/bind9:9.18",
+        defaultRoute=f"via {VICTIM_GATEWAY}",
+    )
+
+    api_server = net.addDocker(
+        "srv_api",
+        ip="10.0.0.14/24",
+        dimage="python:3.11-slim",
+        defaultRoute=f"via {VICTIM_GATEWAY}",
+        command="python3 -m http.server 8000",
+    )
+
     # Connexion des attaquants à leur switch
     for attacker in attackers:
         net.addLink(attacker, attacker_switch)
@@ -121,6 +148,12 @@ def run(auto_scenario=None, duration=45, attack_duration=30, warmup=5):
     # Connexion des victimes à leur switch
     for victim in victims:
         net.addLink(victim, victim_switch)
+
+
+    for server in [nginx_server, dns_server, api_server]:
+        net.addLink(server, victim_switch)
+
+    #####
 
     # Démarrage du réseau simulé
     net.start()

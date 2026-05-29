@@ -36,7 +36,7 @@ Si PowerShell affiche `docker : Le terme "docker" n'est pas reconnu`, Docker Des
 Se placer dans ce dossier :
 
 ```powershell
-cd "D:\Cours\EIDD\S8\Stage\Carpet_Bombing_Simulation_Lab\src\carpet_bombing\simulations\Docker\dockerSimV0"
+cd "Carpet_Bombing_Simulation_Lab\src\carpet_bombing\simulations\Docker\dockerSimV0"
 ```
 
 Construire les images :
