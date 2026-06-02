@@ -1,0 +1,17 @@
+{
+  "capture_duration_seconds": 45,
+  "attack_duration_seconds": 30,
+  "warmup_seconds": 5,
+  "normal_capture": {
+    "pcap_file": "normal_v5_advanced.pcap",
+    "label": "normal"
+  },
+  "single_target_capture": {
+    "pcap_file": "single_target_v5_advanced.pcap",
+    "label": "ddos_single_target"
+  },
+  "carpet_capture": {
+    "pcap_file": "carpet_bombing_v5_advanced.pcap",
+    "label": "carpet_advanced"
+  }
+}

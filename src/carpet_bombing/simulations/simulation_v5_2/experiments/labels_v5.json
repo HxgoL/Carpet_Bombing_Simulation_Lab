@@ -1,0 +1,32 @@
+{
+  "schema_version": "1.1",
+  "simulation": "simulation_v5_2",
+  "scenario_family": "advanced_fragmented_carpet_bombing_paris_canada",
+  "capture_duration_seconds": 45,
+  "attack_duration_seconds": 30,
+  "warmup_seconds": 5,
+  "attacker_network": "10.10.0.0/24",
+  "spoofed_source_ranges": [
+    "10.10.1.1-10.10.1.80",
+    "10.10.2.1-10.10.2.80",
+    "10.10.3.1-10.10.3.80",
+    "10.10.4.1-10.10.4.80"
+  ],
+  "victim_network": "10.20.0.0/24",
+  "single_target_ip": "10.20.0.10",
+  "target_range": "10.20.0.1-10.20.0.80",
+  "attack_type": "dos.carpet_bombing.fragmented.advanced",
+  "mitre": ["T1498"],
+  "normal_capture": {
+    "label": "normal",
+    "pcap_file": "normal_v5_2_paris_canada.pcap"
+  },
+  "single_target_capture": {
+    "label": "ddos_single_target_fragmented",
+    "pcap_file": "single_target_v5_2_fragmented.pcap"
+  },
+  "carpet_capture": {
+    "label": "carpet_fragmented_mixed",
+    "pcap_file": "carpet_v5_2_fragmented.pcap"
+  }
+}
