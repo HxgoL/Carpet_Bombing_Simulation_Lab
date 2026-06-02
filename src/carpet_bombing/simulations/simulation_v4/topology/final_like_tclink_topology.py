@@ -1,6 +1,8 @@
 from pathlib import Path
 import argparse
+import subprocess
 import time
+from Carpet_Bombing_Simulation_Lab.src.carpet_bombing.simulations.simulation_v4.topology.ServiceTopology import API_IMAGE, build_api_image
 from mininet.net import Mininet
 from mininet.node import Node, OVSBridge
 from mininet.link import TCLink
@@ -44,6 +46,7 @@ VICTIM_LINK_DELAY = "10ms"
 VICTIM_LINK_LOSS = 0
 
 
+
 def parse_args():
     parser = argparse.ArgumentParser(description="Run the V4 Mininet topology.")
     parser.add_argument("--auto-scenario", choices=["normal", "attack"])
@@ -65,7 +68,11 @@ class LinuxGateway(Node):
         super().terminate()
 
 
+
+
 def run(auto_scenario=None, duration=45, attack_duration=30, warmup=5):
+    build_api_image()
+
     # Création d'un réseau Mininet sans contrôleur SDN
     # link=TCLink permet d'ajouter des contraintes de bande passante, délai et perte
     net = Containernet(controller=None, switch=OVSBridge, link=TCLink)
@@ -136,9 +143,8 @@ def run(auto_scenario=None, duration=45, attack_duration=30, warmup=5):
     api_server = net.addDocker(
         "srv_api",
         ip="10.0.0.14/24",
-        dimage="python:3.11-slim",
+        dimage=API_IMAGE,
         defaultRoute=f"via {VICTIM_GATEWAY}",
-        command="python3 -m http.server 8000",
     )
 
     # Connexion des attaquants à leur switch
