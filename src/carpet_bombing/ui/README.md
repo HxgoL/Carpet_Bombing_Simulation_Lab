@@ -1,3 +1,27 @@
+# Visualisation Streamlit (UI)
+
+Depuis la racine du projet, utilisez l'une des méthodes suivantes :
+
+- Avec `pip` (minimal, installe le paquet en mode editable) :
+
+```bash
+python -m pip install -e .
+streamlit run src/carpet_bombing/ui/streamlit_app.py
+```
+
+- Ou avec `poetry` si vous l'utilisez :
+
+```bash
+poetry install
+poetry run streamlit run src/carpet_bombing/ui/streamlit_app.py
+```
+
+Fonctionnement minimal:
+- `streamlit_app.py` est un lanceur léger.
+- La logique principale est dans `src/carpet_bombing/ui/app/app.py`.
+- Les dépendances sont gérées dans `pyproject.toml` (Streamlit déjà listé).
+
+Options UI : `Exemple intégré`, `Coller HTML`, `Charger fichier`.
 # UI Traffic Visualizer
 
 ## Lancer la simulation V1
