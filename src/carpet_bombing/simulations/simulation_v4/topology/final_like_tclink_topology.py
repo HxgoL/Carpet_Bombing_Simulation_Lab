@@ -2,7 +2,7 @@ from pathlib import Path
 import argparse
 import subprocess
 import time
-from Carpet_Bombing_Simulation_Lab.src.carpet_bombing.simulations.simulation_v4.topology.ServiceTopology import API_IMAGE, build_api_image
+from carpet_bombing.simulations.simulation_v4.topology.ServiceTopology import API_IMAGE, build_api_image
 from mininet.net import Mininet
 from mininet.node import Node, OVSBridge
 from mininet.link import TCLink
