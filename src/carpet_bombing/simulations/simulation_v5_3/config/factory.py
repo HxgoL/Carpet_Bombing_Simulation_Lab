@@ -87,8 +87,14 @@ def build_simulation_config(
 
     routes = (
         *(RouteSpec(**definition) for definition in ROUTE_DEFINITIONS),
-        *(RouteSpec(attacker.name, "default", attacker.gateway) for attacker in attackers),
-        *(RouteSpec(victim.name, "default", victim.gateway) for victim in victims),
+        *(
+            RouteSpec(attacker.name, "default", attacker.gateway)
+            for attacker in attackers
+        ),
+        *(
+            RouteSpec(victim.name, "default", victim.gateway)
+            for victim in victims
+        ),
     )
 
     return SimulationConfig(

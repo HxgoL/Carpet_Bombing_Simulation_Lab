@@ -7,10 +7,13 @@ from pathlib import Path
 from carpet_bombing.simulations.simulation_v5_3.application.ports import (
     ProcessRunner,
 )
-from carpet_bombing.simulations.simulation_v5_3.domain.models import (
+from carpet_bombing.simulations.simulation_v5_3.domain.simulation_models import (
     SimulationConfig,
+)
+from carpet_bombing.simulations.simulation_v5_3.domain.topology_models import (
     VictimSpec,
 )
+
 
 class TrafficService:
     """Pilote les processus de trafic normal des victimes."""
@@ -18,21 +21,22 @@ class TrafficService:
     RECEIVER_PROCESS_PATTERN = "packet_receiver.py"
     NORMAL_TRAFFIC_PROCESS_PATTERN = "normal_traffic.py"
 
-    """Initialise le service avec sa configuration."""
     def __init__(
         self,
         config: SimulationConfig,
         process_runner: ProcessRunner,
     ) -> None:
-
+        """Initialise le service avec sa configuration."""
         self._config = config
         self._process_runner = process_runner
 
     def start(self) -> None:
+        """Lance les receivers puis le trafic normal."""
         self.start_receivers()
         self.start_normal_traffic()
 
     def start_receivers(self) -> None:
+        """Lance un receiver TCP/UDP sur chaque victime."""
         for victim in self._config.victims:
             self._process_runner.start(
                 victim.name,
@@ -46,9 +50,10 @@ class TrafficService:
             )
 
     def start_normal_traffic(self) -> None:
+        """Lance un générateur de trafic normal sur chaque victime."""
         for index, victim in enumerate(self._config.victims, start=1):
             self._start_victim_normal_traffic(index, victim)
-    
+
     def stop(self) -> None:
         """Arrête tous les processus de trafic des victimes."""
 

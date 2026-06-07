@@ -8,7 +8,7 @@ from typing import Sequence
 from carpet_bombing.simulations.simulation_v5_3.application.ports import (
     ProcessRunner,
 )
-from carpet_bombing.simulations.simulation_v5_3.domain.models import (
+from carpet_bombing.simulations.simulation_v5_3.domain.simulation_models import (
     SimulationConfig,
 )
 

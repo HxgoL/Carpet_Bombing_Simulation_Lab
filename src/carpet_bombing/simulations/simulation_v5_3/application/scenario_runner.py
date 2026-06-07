@@ -8,8 +8,10 @@ from carpet_bombing.simulations.simulation_v5_3.application.attack_service impor
     AttackService,
 )
 from carpet_bombing.simulations.simulation_v5_3.application.ports import Clock
-from carpet_bombing.simulations.simulation_v5_3.domain.models import (
+from carpet_bombing.simulations.simulation_v5_3.domain.scenario_models import (
     ScenarioName,
+)
+from carpet_bombing.simulations.simulation_v5_3.domain.simulation_models import (
     SimulationConfig,
 )
 
