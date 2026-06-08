@@ -96,7 +96,12 @@ def build_simulation_config(
             for attacker in attackers
         ),
         *(
-            LinkSpec(victim.name, victim.switch_name)
+            LinkSpec(
+                victim.name,
+                victim.switch_name,
+                left_interface=f"{victim.name}-eth0",
+                left_ip_cidr=victim.ip_cidr,
+            )
             for victim in victims
         ),
     )

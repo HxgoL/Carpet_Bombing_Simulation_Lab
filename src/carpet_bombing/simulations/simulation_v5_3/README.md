@@ -136,24 +136,36 @@ carpet-bombing-fastapi-v5-3:latest
 
 Les commandes suivantes doivent être exécutées depuis la racine du dépôt.
 
+Mininet et Containernet nécessitent les privilèges root. Ne pas utiliser
+`sudo poetry run`, car Poetry chercherait ou créerait alors un environnement
+virtuel appartenant à root. Récupérer plutôt l'interpréteur de l'environnement
+Poetry utilisateur :
+
+```bash
+VENV_PYTHON="$(poetry env info --executable)"
+```
+
 ### Mininet interactif
 
 ```bash
-sudo python3 src/carpet_bombing/simulations/simulation_v5_3/topology/advanced_tclink_topology.py \
+sudo -E "$VENV_PYTHON" \
+  src/carpet_bombing/simulations/simulation_v5_3/topology/advanced_tclink_topology.py \
   --backend mininet
 ```
 
 ### Containernet interactif
 
 ```bash
-sudo python3 src/carpet_bombing/simulations/simulation_v5_3/topology/advanced_tclink_topology.py \
+sudo -E "$VENV_PYTHON" \
+  src/carpet_bombing/simulations/simulation_v5_3/topology/advanced_tclink_topology.py \
   --backend containernet
 ```
 
 ### Scénario Mininet automatique
 
 ```bash
-sudo python3 src/carpet_bombing/simulations/simulation_v5_3/topology/advanced_tclink_topology.py \
+sudo -E "$VENV_PYTHON" \
+  src/carpet_bombing/simulations/simulation_v5_3/topology/advanced_tclink_topology.py \
   --backend mininet \
   --auto-scenario carpet \
   --duration 45 \
@@ -167,7 +179,8 @@ sudo python3 src/carpet_bombing/simulations/simulation_v5_3/topology/advanced_tc
 ### Scénario Containernet automatique
 
 ```bash
-sudo python3 src/carpet_bombing/simulations/simulation_v5_3/topology/advanced_tclink_topology.py \
+sudo -E "$VENV_PYTHON" \
+  src/carpet_bombing/simulations/simulation_v5_3/topology/advanced_tclink_topology.py \
   --backend containernet \
   --auto-scenario carpet \
   --duration 45 \
@@ -241,7 +254,8 @@ ainsi fonctionner sans connaître Docker.
 ### Tous les scénarios avec Mininet
 
 ```bash
-sudo python3 src/carpet_bombing/simulations/simulation_v5_3/experiments/run_v5_experiment.py \
+sudo -E "$VENV_PYTHON" \
+  src/carpet_bombing/simulations/simulation_v5_3/experiments/run_v5_experiment.py \
   --backend mininet \
   --scenario all
 ```
@@ -249,7 +263,8 @@ sudo python3 src/carpet_bombing/simulations/simulation_v5_3/experiments/run_v5_e
 ### Capture carpet avec Containernet
 
 ```bash
-sudo python3 src/carpet_bombing/simulations/simulation_v5_3/experiments/run_v5_experiment.py \
+sudo -E "$VENV_PYTHON" \
+  src/carpet_bombing/simulations/simulation_v5_3/experiments/run_v5_experiment.py \
   --backend containernet \
   --scenario carpet \
   --duration 45 \
@@ -310,6 +325,17 @@ root doivent utiliser le marqueur :
 
 ```python
 @pytest.mark.containernet
+```
+
+## Nettoyage après une interruption
+
+Quitter normalement la CLI avec `exit` permet à la simulation de supprimer ses
+ressources. Après une interruption brutale, nettoyer Mininet puis les éventuels
+conteneurs Containernet restants :
+
+```bash
+sudo mn -c
+docker ps -aq --filter name=mn. | xargs -r docker rm -f
 ```
 
 ## Limites actuelles

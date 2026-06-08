@@ -5,6 +5,9 @@ from __future__ import annotations
 from carpet_bombing.simulations.simulation_v5_3.application.attack_service import (
     AttackService,
 )
+from carpet_bombing.simulations.simulation_v5_3.application.interface_configurator import (
+    InterfaceConfigurator,
+)
 from carpet_bombing.simulations.simulation_v5_3.application.ports import (
     InteractiveCli,
     SimulationNetwork,
@@ -30,6 +33,7 @@ class SimulationService:
         self,
         config: SimulationConfig,
         network: SimulationNetwork,
+        interface_configurator: InterfaceConfigurator,
         route_configurator: RouteConfigurator,
         traffic_service: TrafficService,
         attack_service: AttackService,
@@ -40,6 +44,7 @@ class SimulationService:
 
         self._config = config
         self._network = network
+        self._interface_configurator = interface_configurator
         self._route_configurator = route_configurator
         self._traffic_service = traffic_service
         self._attack_service = attack_service
@@ -54,6 +59,7 @@ class SimulationService:
 
         try:
             self._start_network()
+            self._interface_configurator.configure(self._config.links)
             self._route_configurator.configure(self._config.routes)
             self._traffic_service.start()
             self._print_summary()

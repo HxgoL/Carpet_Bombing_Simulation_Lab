@@ -10,6 +10,9 @@ from mininet.log import setLogLevel
 from carpet_bombing.simulations.simulation_v5_3.application.attack_service import (
     AttackService,
 )
+from carpet_bombing.simulations.simulation_v5_3.application.interface_configurator import (
+    InterfaceConfigurator,
+)
 from carpet_bombing.simulations.simulation_v5_3.application.ports import (
     CommandRunner,
     ProcessRunner,
@@ -116,6 +119,7 @@ def main() -> None:
     )
     clock = SystemClock()
 
+    interface_configurator = InterfaceConfigurator(command_runner)
     route_configurator = RouteConfigurator(command_runner)
     traffic_service = TrafficService(config, process_runner)
     attack_service = AttackService(config, process_runner)
@@ -125,6 +129,7 @@ def main() -> None:
     simulation_service = SimulationService(
         config=config,
         network=network,
+        interface_configurator=interface_configurator,
         route_configurator=route_configurator,
         traffic_service=traffic_service,
         attack_service=attack_service,
@@ -137,6 +142,7 @@ def main() -> None:
     finally:
         # close() est idempotente : cet appel reste sûr même si run() l'a appelée.
         simulation_service.close()
+
 
 def _build_backend(
     backend: BackendName,

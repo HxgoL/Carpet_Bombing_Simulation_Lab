@@ -18,7 +18,7 @@ def test_builds_complete_default_configuration() -> None:
     assert len(config.routers) == 4
     assert len(config.switches) == 3
     assert len(config.links) == 30
-    assert len(config.routes) == 33
+    assert len(config.routes) == 39
     assert all(path.exists() for path in vars(config.scripts).values())
 
 

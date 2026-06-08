@@ -155,6 +155,16 @@ ROUTE_DEFINITIONS = (
         "gateway": "10.10.1.2",
     },
     {
+        "node_name": "r1",
+        "destination": "10.10.2.0/30",
+        "gateway": "10.10.1.2",
+    },
+    {
+        "node_name": "r1",
+        "destination": "10.10.3.0/30",
+        "gateway": "10.10.1.2",
+    },
+    {
         "node_name": "r2",
         "destination": "10.0.0.0/24",
         "gateway": "10.10.2.2",
@@ -162,6 +172,16 @@ ROUTE_DEFINITIONS = (
     {
         "node_name": "r2",
         "destination": "10.0.1.0/24",
+        "gateway": "10.10.2.2",
+    },
+    {
+        "node_name": "r2",
+        "destination": "10.10.1.0/30",
+        "gateway": "10.10.2.2",
+    },
+    {
+        "node_name": "r2",
+        "destination": "10.10.3.0/30",
         "gateway": "10.10.2.2",
     },
     {
@@ -187,6 +207,16 @@ ROUTE_DEFINITIONS = (
     {
         "node_name": "gw",
         "destination": "10.0.2.0/24",
+        "gateway": "10.10.3.1",
+    },
+    {
+        "node_name": "gw",
+        "destination": "10.10.1.0/30",
+        "gateway": "10.10.3.1",
+    },
+    {
+        "node_name": "gw",
+        "destination": "10.10.2.0/30",
         "gateway": "10.10.3.1",
     },
 )
