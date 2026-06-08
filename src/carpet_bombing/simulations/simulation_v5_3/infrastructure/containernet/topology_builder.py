@@ -4,8 +4,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from containernet.net import Containernet
 from mininet.link import TCLink
+from mininet.net import Containernet
 from mininet.node import OVSBridge
 
 from carpet_bombing.simulations.simulation_v5_3.domain.simulation_models import (

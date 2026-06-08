@@ -6,7 +6,7 @@ import shlex
 from pathlib import Path
 from typing import Sequence
 
-from containernet.net import Containernet
+from mininet.net import Containernet
 from mininet.node import Node
 
 
