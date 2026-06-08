@@ -18,9 +18,7 @@ from carpet_bombing.simulations.simulation_v5_3.application.scenario_runner impo
 from carpet_bombing.simulations.simulation_v5_3.application.traffic_service import (
     TrafficService,
 )
-
-from carpet_bombing.simulations.simulation_v5_3.domain.scenario_models import (
-    ScenarioName,
+from carpet_bombing.simulations.simulation_v5_3.domain.simulation_models import (
     SimulationConfig,
 )
 
@@ -56,7 +54,7 @@ class SimulationService:
 
         try:
             self._start_network()
-            self._route_configurator.configure()
+            self._route_configurator.configure(self._config.routes)
             self._traffic_service.start()
             self._print_summary()
             self._run_selected_mode()
@@ -64,16 +62,15 @@ class SimulationService:
             self.close()
 
     def close(self) -> None:
-        """Nettoie les ressources de manière idempotente.
-
-        Une méthode idempotente peut être appelée plusieurs fois sans produire
-        d'erreur ni répéter inutilement les opérations.
-        """
+        """Nettoie les ressources de manière idempotente."""
 
         if self._closed:
             return
 
         self._closed = True
+
+        if not self._network_started:
+            return
 
         try:
             self._attack_service.stop()
@@ -81,9 +78,8 @@ class SimulationService:
             try:
                 self._traffic_service.stop()
             finally:
-                if self._network_started:
-                    self._network.stop()
-                    self._network_started = False
+                self._network.stop()
+                self._network_started = False
 
     def _start_network(self) -> None:
         """Démarre le réseau et mémorise son état."""
@@ -106,12 +102,17 @@ class SimulationService:
         """Affiche les informations utiles avant le scénario."""
 
         attack = self._config.attack
+        containerized_victims = sum(
+            victim.is_containerized
+            for victim in self._config.victims
+        )
 
         print("\nSimulation V5.3 : topologie multi-routeurs")
         print("  Scénarios : normal, single_target, carpet")
         print("  Chemin : attaquants -> r1/r2 -> r_core -> gw -> victimes")
         print(f"  Nombre d'attaquants : {len(self._config.attackers)}")
         print(f"  Nombre de victimes actives : {len(self._config.victims)}")
+        print(f"  Victimes conteneurisées : {containerized_victims}")
         print(f"  Cible single-target : {self._config.single_target_ip}")
         print(
             f"  Attaque : {attack.packets_per_second} pps, "

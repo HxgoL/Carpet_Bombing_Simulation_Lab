@@ -10,6 +10,11 @@ from mininet.log import setLogLevel
 from carpet_bombing.simulations.simulation_v5_3.application.attack_service import (
     AttackService,
 )
+from carpet_bombing.simulations.simulation_v5_3.application.ports import (
+    CommandRunner,
+    ProcessRunner,
+    SimulationNetwork,
+)
 from carpet_bombing.simulations.simulation_v5_3.application.route_configurator import (
     RouteConfigurator,
 )
@@ -23,7 +28,11 @@ from carpet_bombing.simulations.simulation_v5_3.application.traffic_service impo
     TrafficService,
 )
 from carpet_bombing.simulations.simulation_v5_3.config.factory import (
+    BackendName,
     build_simulation_config,
+)
+from carpet_bombing.simulations.simulation_v5_3.config.service_defaults import (
+    FASTAPI_IMAGE,
 )
 from carpet_bombing.simulations.simulation_v5_3.domain.attack_models import (
     AttackProtocol,
@@ -32,12 +41,14 @@ from carpet_bombing.simulations.simulation_v5_3.domain.attack_models import (
 from carpet_bombing.simulations.simulation_v5_3.domain.scenario_models import (
     ScenarioName,
 )
-from carpet_bombing.simulations.simulation_v5_3.infrastructure.mininet.process_runner import (
-    MininetCommandRunner,
-    MininetProcessRunner,
+from carpet_bombing.simulations.simulation_v5_3.domain.simulation_models import (
+    SimulationConfig,
 )
-from carpet_bombing.simulations.simulation_v5_3.infrastructure.mininet.topology_builder import (
-    MininetTopologyBuilder,
+from carpet_bombing.simulations.simulation_v5_3.infrastructure.docker.docker_paths import (
+    FASTAPI_DOCKER_CONTEXT,
+)
+from carpet_bombing.simulations.simulation_v5_3.infrastructure.docker.image_builder import (
+    ensure_image,
 )
 from carpet_bombing.simulations.simulation_v5_3.infrastructure.system_clock import (
     SystemClock,
@@ -51,9 +62,14 @@ def parse_args() -> argparse.Namespace:
     """Analyse les arguments fournis par l'utilisateur."""
 
     parser = argparse.ArgumentParser(
-        description="Run the V5.3 Mininet topology."
+        description="Run the V5.3 Mininet or Containernet topology."
     )
 
+    parser.add_argument(
+        "--backend",
+        choices=["mininet", "containernet"],
+        default="mininet",
+    )
     parser.add_argument(
         "--auto-scenario",
         choices=["normal", "single_target", "carpet"],
@@ -81,8 +97,10 @@ def main() -> None:
 
     args = parse_args()
     setLogLevel("info")
+    backend = cast(BackendName, args.backend)
 
     config = build_simulation_config(
+        backend=backend,
         scenario_name=cast(ScenarioName | None, args.auto_scenario),
         duration_seconds=args.duration,
         attack_duration_seconds=args.attack_duration,
@@ -92,10 +110,10 @@ def main() -> None:
         fragment_mode=cast(FragmentMode, args.fragment_mode),
     )
 
-    network = MininetTopologyBuilder(config).build()
-
-    command_runner = MininetCommandRunner(network)
-    process_runner = MininetProcessRunner(network)
+    network, command_runner, process_runner = _build_backend(
+        backend,
+        config,
+    )
     clock = SystemClock()
 
     route_configurator = RouteConfigurator(command_runner)
@@ -119,6 +137,48 @@ def main() -> None:
     finally:
         # close() est idempotente : cet appel reste sûr même si run() l'a appelée.
         simulation_service.close()
+
+def _build_backend(
+    backend: BackendName,
+    config: SimulationConfig,
+) -> tuple[SimulationNetwork, CommandRunner, ProcessRunner]:
+    """Construit les adaptateurs correspondant au backend sélectionné."""
+
+    if backend == "containernet":
+        # Les imports sont retardés afin que le backend Mininet reste utilisable
+        # sur une machine où Containernet n'est pas installé.
+        from carpet_bombing.simulations.simulation_v5_3.infrastructure.containernet.process_runner import (
+            ContainernetCommandRunner,
+            ContainernetProcessRunner,
+        )
+        from carpet_bombing.simulations.simulation_v5_3.infrastructure.containernet.topology_builder import (
+            ContainernetTopologyBuilder,
+        )
+
+        ensure_image(FASTAPI_IMAGE, FASTAPI_DOCKER_CONTEXT)
+        network = ContainernetTopologyBuilder(config).build()
+
+        return (
+            network,
+            ContainernetCommandRunner(network),
+            ContainernetProcessRunner(network),
+        )
+
+    from carpet_bombing.simulations.simulation_v5_3.infrastructure.mininet.process_runner import (
+        MininetCommandRunner,
+        MininetProcessRunner,
+    )
+    from carpet_bombing.simulations.simulation_v5_3.infrastructure.mininet.topology_builder import (
+        MininetTopologyBuilder,
+    )
+
+    network = MininetTopologyBuilder(config).build()
+
+    return (
+        network,
+        MininetCommandRunner(network),
+        MininetProcessRunner(network),
+    )
 
 
 if __name__ == "__main__":

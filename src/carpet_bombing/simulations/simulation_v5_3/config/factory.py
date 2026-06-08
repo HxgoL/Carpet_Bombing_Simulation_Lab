@@ -1,6 +1,9 @@
 """Factory construisant une configuration V5.3 complète et validée."""
 
+from __future__ import annotations
+
 from pathlib import Path
+from typing import Literal
 
 from carpet_bombing.simulations.simulation_v5_3.config.defaults import (
     DEFAULT_ATTACK_DURATION_SECONDS,
@@ -17,6 +20,14 @@ from carpet_bombing.simulations.simulation_v5_3.config.defaults import (
     SINGLE_TARGET_IP,
     VICTIM_GATEWAY,
     VICTIM_SWITCH_NAME,
+)
+from carpet_bombing.simulations.simulation_v5_3.config.service_defaults import (
+    FASTAPI_ENVIRONMENT,
+    FASTAPI_HEALTHCHECK_PATH,
+    FASTAPI_IMAGE,
+    FASTAPI_INTERNAL_PORT,
+    FASTAPI_SERVICE_NAME,
+    FASTAPI_START_COMMAND,
 )
 from carpet_bombing.simulations.simulation_v5_3.config.topology_defaults import (
     ACTIVE_VICTIM_IPS,
@@ -35,6 +46,10 @@ from carpet_bombing.simulations.simulation_v5_3.domain.scenario_models import (
     ScenarioName,
     ScenarioSettings,
 )
+from carpet_bombing.simulations.simulation_v5_3.domain.service_models import (
+    ContainerSpec,
+    ServiceSpec,
+)
 from carpet_bombing.simulations.simulation_v5_3.domain.simulation_models import (
     ScriptPaths,
     SimulationConfig,
@@ -49,12 +64,15 @@ from carpet_bombing.simulations.simulation_v5_3.domain.topology_models import (
 )
 
 
+BackendName = Literal["mininet", "containernet"]
+
 SIMULATION_ROOT = Path(__file__).resolve().parents[1]
 TRAFFIC_GENERATOR_ROOT = SIMULATION_ROOT / "traffic_generator"
 
 
 def build_simulation_config(
     *,
+    backend: BackendName = "mininet",
     scenario_name: ScenarioName | None = None,
     duration_seconds: int = DEFAULT_SCENARIO_DURATION_SECONDS,
     attack_duration_seconds: int = DEFAULT_ATTACK_DURATION_SECONDS,
@@ -63,26 +81,24 @@ def build_simulation_config(
     protocol: AttackProtocol = DEFAULT_ATTACK_PROTOCOL,
     fragment_mode: FragmentMode = DEFAULT_FRAGMENT_MODE,
 ) -> SimulationConfig:
-    """Construit la configuration par défaut avec les options d'exécution."""
+    """Construit une configuration adaptée au backend demandé."""
 
-    attackers = tuple(
-        AttackerSpec(**definition)
-        for definition in ATTACKER_DEFINITIONS
-    )
-    victims = tuple(
-        VictimSpec(
-            name=f"h{index}",
-            ip_cidr=f"{ip_address}/24",
-            gateway=VICTIM_GATEWAY,
-            switch_name=VICTIM_SWITCH_NAME,
-        )
-        for index, ip_address in enumerate(ACTIVE_VICTIM_IPS, start=1)
-    )
+    if backend not in ("mininet", "containernet"):
+        raise ValueError(f"Unsupported simulation backend: {backend}")
+
+    attackers = _build_attackers()
+    victims = _build_victims(backend)
 
     links = (
         *(LinkSpec(**definition) for definition in CORE_LINK_DEFINITIONS),
-        *(LinkSpec(attacker.name, attacker.switch_name) for attacker in attackers),
-        *(LinkSpec(victim.name, victim.switch_name) for victim in victims),
+        *(
+            LinkSpec(attacker.name, attacker.switch_name)
+            for attacker in attackers
+        ),
+        *(
+            LinkSpec(victim.name, victim.switch_name)
+            for victim in victims
+        ),
     )
 
     routes = (
@@ -131,4 +147,44 @@ def build_simulation_config(
         ),
         single_target_ip=SINGLE_TARGET_IP,
         victim_gateway=VICTIM_GATEWAY,
+    )
+
+
+def _build_attackers() -> tuple[AttackerSpec, ...]:
+    """Construit les attaquants de la topologie."""
+
+    return tuple(
+        AttackerSpec(**definition)
+        for definition in ATTACKER_DEFINITIONS
+    )
+
+
+def _build_victims(backend: BackendName) -> tuple[VictimSpec, ...]:
+    """Construit des victimes classiques ou conteneurisées."""
+
+    container: ContainerSpec | None = None
+    service: ServiceSpec | None = None
+
+    if backend == "containernet":
+        container = ContainerSpec(
+            image=FASTAPI_IMAGE,
+            environment=FASTAPI_ENVIRONMENT,
+        )
+        service = ServiceSpec(
+            name=FASTAPI_SERVICE_NAME,
+            internal_port=FASTAPI_INTERNAL_PORT,
+            start_command=FASTAPI_START_COMMAND,
+            healthcheck_path=FASTAPI_HEALTHCHECK_PATH,
+        )
+
+    return tuple(
+        VictimSpec(
+            name=f"h{index}",
+            ip_cidr=f"{ip_address}/24",
+            gateway=VICTIM_GATEWAY,
+            switch_name=VICTIM_SWITCH_NAME,
+            container=container,
+            service=service,
+        )
+        for index, ip_address in enumerate(ACTIVE_VICTIM_IPS, start=1)
     )

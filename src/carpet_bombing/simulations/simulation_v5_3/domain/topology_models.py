@@ -1,11 +1,13 @@
 """Modèles métier décrivant la topologie réseau V5.3.
 
-Ce module ne dépend ni de Mininet ni de Containernet.
+Ce module ne dépend ni de Mininet, ni de Containernet, ni de Docker.
 """
 
 from __future__ import annotations
 
 from dataclasses import dataclass
+
+from .service_models import ContainerSpec, ServiceSpec
 
 
 @dataclass(frozen=True)
@@ -22,12 +24,29 @@ class AttackerSpec:
 
 @dataclass(frozen=True)
 class VictimSpec:
-    """Décrit une victime active de la simulation."""
+    """Décrit une victime classique ou conteneurisée."""
 
     name: str
     ip_cidr: str
     gateway: str
     switch_name: str
+
+    container: ContainerSpec | None = None
+    service: ServiceSpec | None = None
+
+    def __post_init__(self) -> None:
+        """Vérifie qu'un service possède un environnement d'exécution."""
+
+        if self.service is not None and self.container is None:
+            raise ValueError(
+                "A victim service requires a container specification."
+            )
+
+    @property
+    def is_containerized(self) -> bool:
+        """Indique si la victime doit être créée dans un conteneur."""
+
+        return self.container is not None
 
 
 @dataclass(frozen=True)
@@ -46,11 +65,7 @@ class SwitchSpec:
 
 @dataclass(frozen=True)
 class LinkSpec:
-    """Décrit un lien entre deux nœuds de la topologie.
-
-    Les interfaces et adresses IP sont optionnelles, car les liens entre un
-    hôte et un switch ne nécessitent pas toujours une configuration explicite.
-    """
+    """Décrit un lien entre deux nœuds de la topologie."""
 
     left_node: str
     right_node: str

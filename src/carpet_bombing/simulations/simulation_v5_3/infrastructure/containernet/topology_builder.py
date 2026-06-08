@@ -1,45 +1,56 @@
-"""Builder responsable de la construction de la topologie Mininet."""
+"""Builder construisant la topologie V5.3 avec Containernet."""
 
 from __future__ import annotations
 
 from typing import Any
 
+from containernet.net import Containernet
 from mininet.link import TCLink
-from mininet.net import Mininet
 from mininet.node import OVSBridge
 
 from carpet_bombing.simulations.simulation_v5_3.domain.simulation_models import (
     SimulationConfig,
 )
-from carpet_bombing.simulations.simulation_v5_3.domain.topology_models import LinkSpec
-from carpet_bombing.simulations.simulation_v5_3.infrastructure.mininet.linux_router import (
+from carpet_bombing.simulations.simulation_v5_3.domain.topology_models import (
+    LinkSpec,
+    VictimSpec,
+)
+from carpet_bombing.simulations.simulation_v5_3.infrastructure.containernet.docker_host import (
+    build_add_docker_options,
+)
+from carpet_bombing.simulations.simulation_v5_3.infrastructure.containernet.linux_router import (
     LinuxRouter,
 )
 
 
-class MininetTopologyBuilder:
-    """Construit un réseau Mininet depuis une configuration de simulation."""
+class ContainernetTopologyBuilder:
+    """Construit un réseau où les victimes sont des conteneurs Docker."""
 
     def __init__(self, config: SimulationConfig) -> None:
-        """Conserve la configuration à transformer en topologie Mininet."""
-
-        containerized = [
-            victim.name
-            for victim in config.victims
-            if victim.is_containerized
-        ]
-
-        if containerized:
-            raise ValueError(
-                "Mininet cannot build containerized victims: "
-                + ", ".join(containerized)
-            )
+        """Conserve et valide la configuration à construire."""
 
         self._config = config
 
-    def build(self) -> Mininet:
-        """Construit et retourne un réseau Mininet non démarré."""
-        network = Mininet(controller=None, switch=OVSBridge, link=TCLink)
+        non_containerized = [
+            victim.name
+            for victim in config.victims
+            if not victim.is_containerized
+        ]
+
+        if non_containerized:
+            raise ValueError(
+                "Containernet requires containerized victims: "
+                + ", ".join(non_containerized)
+            )
+
+    def build(self) -> Containernet:
+        """Construit et retourne un réseau Containernet non démarré."""
+
+        network = Containernet(
+            controller=None,
+            switch=OVSBridge,
+            link=TCLink,
+        )
 
         self._add_switches(network)
         self._add_routers(network)
@@ -49,22 +60,20 @@ class MininetTopologyBuilder:
 
         return network
 
-    def _add_switches(self, network: Mininet) -> None:
+    def _add_switches(self, network: Containernet) -> None:
         """Ajoute tous les switchs à la topologie."""
 
         for switch in self._config.switches:
             network.addSwitch(switch.name)
 
-    def _add_routers(self, network: Mininet) -> None:
-        """Ajoute les routeurs Linux à la topologie."""
+    def _add_routers(self, network: Containernet) -> None:
+        """Ajoute les routeurs Linux non conteneurisés."""
 
         for router in self._config.routers:
-            # Les adresses des interfaces sont portées par les LinkSpec.
-            # ``ip=None`` évite que Mininet écrase l'IP de l'interface par défaut.
             network.addHost(router.name, cls=LinuxRouter, ip=None)
 
-    def _add_attackers(self, network: Mininet) -> None:
-        """Ajoute les attaquants avec leur route par défaut."""
+    def _add_attackers(self, network: Containernet) -> None:
+        """Ajoute les attaquants comme hôtes réseau classiques."""
 
         for attacker in self._config.attackers:
             network.addHost(
@@ -73,24 +82,30 @@ class MininetTopologyBuilder:
                 defaultRoute=f"via {attacker.gateway}",
             )
 
-    def _add_victims(self, network: Mininet) -> None:
-        """Ajoute les victimes actives avec leur route par défaut."""
+    def _add_victims(self, network: Containernet) -> None:
+        """Ajoute les victimes sous forme de conteneurs Docker."""
+
+        traffic_generator_root = self._config.scripts.normal_traffic.parent
 
         for victim in self._config.victims:
-            network.addHost(
+            network.addDocker(
                 victim.name,
                 ip=victim.ip_cidr,
                 defaultRoute=f"via {victim.gateway}",
+                **build_add_docker_options(
+                    victim,
+                    traffic_generator_root=traffic_generator_root,
+                ),
             )
 
-    def _add_links(self, network: Mininet) -> None:
+    def _add_links(self, network: Containernet) -> None:
         """Ajoute tous les liens décrits dans la configuration."""
 
         for link in self._config.links:
             self._add_link(network, link)
 
-    def _add_link(self, network: Mininet, link: LinkSpec) -> None:
-        """Convertit un LinkSpec en appel Mininet addLink()."""
+    def _add_link(self, network: Containernet, link: LinkSpec) -> None:
+        """Convertit un ``LinkSpec`` en appel ``addLink``."""
 
         options: dict[str, Any] = {}
 
@@ -115,7 +130,8 @@ class MininetTopologyBuilder:
         if link.loss_percent is not None:
             options["loss"] = link.loss_percent
 
-        left_node = network.get(link.left_node)
-        right_node = network.get(link.right_node)
-
-        network.addLink(left_node, right_node, **options)
+        network.addLink(
+            network.get(link.left_node),
+            network.get(link.right_node),
+            **options,
+        )
