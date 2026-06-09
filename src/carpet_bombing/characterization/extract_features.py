@@ -1,6 +1,7 @@
 import argparse
 import csv
 import ipaddress
+import math
 from collections import defaultdict
 from pathlib import Path
 
@@ -21,6 +22,15 @@ DEFAULT_COLUMNS = [
     "bytes_per_second",
     "unique_dst_count_for_src",
     "is_dst_inactive",
+    "ttl_min",
+    "ttl_max",
+    "ttl_mean",
+    "ttl_std",
+    "unique_ttl_count",
+    "fragmented_packet_count",
+    "first_fragment_count",
+    "non_initial_fragment_count",
+    "fragment_ratio",
     "label",
     "pcap_file",
 ]
@@ -150,7 +160,22 @@ def packet_protocol(packet):
         return "UDP", int(packet[UDP].sport), int(packet[UDP].dport)
     if packet.haslayer(ICMP):
         return "ICMP", "", ""
-    return str(packet[IP].proto), "", ""
+
+    protocol_by_number = {1: "ICMP", 6: "TCP", 17: "UDP"}
+    return protocol_by_number.get(int(packet[IP].proto), str(packet[IP].proto)), "", ""
+
+
+def packet_fragmentation(packet):
+    ip_layer = packet[IP]
+    more_fragments = bool(int(ip_layer.flags) & 0x1)
+    fragment_offset = int(ip_layer.frag)
+    is_fragmented = more_fragments or fragment_offset > 0
+
+    return {
+        "is_fragmented": is_fragmented,
+        "is_first_fragment": more_fragments and fragment_offset == 0,
+        "is_non_initial_fragment": fragment_offset > 0,
+    }
 
 
 def is_attack_flow(src_ip, dst_ip, protocol, attack_config):
@@ -180,7 +205,18 @@ def resolve_flow_label(default_label, src_ip, dst_ip, protocol, attack_config):
 
 
 def extract_pcap_features(pcap_file, window_size, label, inactive_ips, attack_config):
-    flows = defaultdict(lambda: {"packet_count": 0, "byte_count": 0})
+    flows = defaultdict(
+        lambda: {
+            "packet_count": 0,
+            "byte_count": 0,
+            "ttl_sum": 0,
+            "ttl_squared_sum": 0,
+            "ttl_values": set(),
+            "fragmented_packet_count": 0,
+            "first_fragment_count": 0,
+            "non_initial_fragment_count": 0,
+        }
+    )
     src_window_destinations = defaultdict(set)
 
     with PcapReader(str(pcap_file)) as packets:
@@ -194,6 +230,8 @@ def extract_pcap_features(pcap_file, window_size, label, inactive_ips, attack_co
             src_ip = packet[IP].src
             dst_ip = packet[IP].dst
             protocol, src_port, dst_port = packet_protocol(packet)
+            ttl = int(packet[IP].ttl)
+            fragmentation = packet_fragmentation(packet)
             flow_label = resolve_flow_label(
                 default_label=label,
                 src_ip=src_ip,
@@ -215,10 +253,25 @@ def extract_pcap_features(pcap_file, window_size, label, inactive_ips, attack_co
 
             flows[flow_key]["packet_count"] += 1
             flows[flow_key]["byte_count"] += len(packet)
+            flows[flow_key]["ttl_sum"] += ttl
+            flows[flow_key]["ttl_squared_sum"] += ttl * ttl
+            flows[flow_key]["ttl_values"].add(ttl)
+            flows[flow_key]["fragmented_packet_count"] += int(
+                fragmentation["is_fragmented"]
+            )
+            flows[flow_key]["first_fragment_count"] += int(
+                fragmentation["is_first_fragment"]
+            )
+            flows[flow_key]["non_initial_fragment_count"] += int(
+                fragmentation["is_non_initial_fragment"]
+            )
             src_window_destinations[(window_start, src_ip)].add(dst_ip)
 
     rows = []
-    for flow_key, counters in sorted(flows.items()):
+    for flow_key, counters in sorted(
+        flows.items(),
+        key=lambda item: tuple(str(value) for value in item[0]),
+    ):
         (
             window_start,
             window_end,
@@ -232,6 +285,11 @@ def extract_pcap_features(pcap_file, window_size, label, inactive_ips, attack_co
 
         packet_count = counters["packet_count"]
         byte_count = counters["byte_count"]
+        ttl_mean = counters["ttl_sum"] / packet_count
+        ttl_variance = max(
+            counters["ttl_squared_sum"] / packet_count - ttl_mean * ttl_mean,
+            0.0,
+        )
         rows.append(
             {
                 "window_start": f"{window_start:.6f}",
@@ -249,6 +307,18 @@ def extract_pcap_features(pcap_file, window_size, label, inactive_ips, attack_co
                     src_window_destinations[(window_start, src_ip)]
                 ),
                 "is_dst_inactive": int(dst_ip in inactive_ips),
+                "ttl_min": min(counters["ttl_values"]),
+                "ttl_max": max(counters["ttl_values"]),
+                "ttl_mean": ttl_mean,
+                "ttl_std": math.sqrt(ttl_variance),
+                "unique_ttl_count": len(counters["ttl_values"]),
+                "fragmented_packet_count": counters["fragmented_packet_count"],
+                "first_fragment_count": counters["first_fragment_count"],
+                "non_initial_fragment_count": counters[
+                    "non_initial_fragment_count"
+                ],
+                "fragment_ratio": counters["fragmented_packet_count"]
+                / packet_count,
                 "label": flow_label,
                 "pcap_file": pcap_file.name,
             }

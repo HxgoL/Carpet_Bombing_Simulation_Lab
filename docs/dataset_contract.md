@@ -111,6 +111,15 @@ packets_per_second
 bytes_per_second
 unique_dst_count_for_src
 is_dst_inactive
+ttl_min
+ttl_max
+ttl_mean
+ttl_std
+unique_ttl_count
+fragmented_packet_count
+first_fragment_count
+non_initial_fragment_count
+fragment_ratio
 label
 pcap_file
 ```
@@ -132,6 +141,13 @@ Description des colonnes :
   une même source dans la fenêtre temporelle
 - `is_dst_inactive` : vaut `1` si la destination est considérée inactive, sinon
   `0`
+- `ttl_min` / `ttl_max` : valeurs TTL minimale et maximale observées dans le flux
+- `ttl_mean` / `ttl_std` : moyenne et écart-type du TTL
+- `unique_ttl_count` : nombre de valeurs TTL différentes observées
+- `fragmented_packet_count` : nombre de paquets appartenant à une fragmentation IP
+- `first_fragment_count` : nombre de premiers fragments avec le bit `MF`
+- `non_initial_fragment_count` : nombre de fragments avec un offset supérieur à zéro
+- `fragment_ratio` : proportion de paquets fragmentés dans le flux
 - `label` : type de trafic
 - `pcap_file` : nom du fichier de capture d'origine
 
