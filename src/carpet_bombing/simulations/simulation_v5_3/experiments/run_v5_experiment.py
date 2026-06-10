@@ -18,6 +18,12 @@ CAPTURE_FILTER = (
 def parse_args():
     parser = argparse.ArgumentParser(description="Run a V5.3 capture scenario.")
     parser.add_argument(
+        "--backend",
+        choices=["mininet", "containernet"],
+        default="mininet",
+        help="Network backend used to run the topology.",
+    )
+    parser.add_argument(
         "--scenario",
         choices=["normal", "single_target", "carpet", "all"],
         required=True,
@@ -118,6 +124,8 @@ def capture_scenario(scenario, labels, args):
     topology_command = [
         "python3",
         str(TOPOLOGY_FILE),
+        "--backend",
+        args.backend,
         "--auto-scenario",
         scenario,
         "--duration",

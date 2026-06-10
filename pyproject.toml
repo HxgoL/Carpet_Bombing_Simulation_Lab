@@ -21,12 +21,27 @@ uvicorn = ">=0.30.0,<1.0.0"
 scikit-learn = ">=1.4.0,<2.0.0"
 pyshark = ">=0.6,<1.0.0"
 jupyter = ">=1.0.0,<2.0.0"
-mininet = "*"
 requests = ">=2.34.2,<3.0.0"
 pyyaml = ">=6.0.3,<7.0.0"
 
 [tool.poetry.group.dev.dependencies]
 pytest = ">=8.0.0,<10.0.0"
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+addopts = "-ra --strict-markers"
+markers = [
+    "unit: tests unitaires rapides sans infrastructure réseau",
+    "integration: tests d'intégration sans lancement Mininet",
+    "mininet: tests nécessitant Mininet et généralement sudo",
+    "containernet: tests nécessitant Containernet, Docker et sudo",
+]
+
+[tool.poetry.group.netlab]
+optional = true
+
+[tool.poetry.group.netlab.dependencies]
 
 [build-system]
 requires = ["poetry-core>=2.0.0,<3.0.0"]
