@@ -51,7 +51,7 @@ Répartition actuelle :
 - `nodes/` : types de noeuds, dont les routeurs Linux
 - `services/` : services Docker côté Canada
 - `traffic/` : trafic normal, récepteurs et orchestration du trafic légitime
-- `attacks/` : générateur avancé fragmenté et orchestrateur
+- `attacks/` : générateur avancé fragmenté, découpé par responsabilité, et orchestrateur
 - `dataset/` : emplacement prévu pour les exports de features
 - `experiments/` : captures et labels de dataset
 - `pcaps/` : captures réseau brutes générées
@@ -125,6 +125,18 @@ V5 officielle :
 - `--payload-size` : taille du payload avant fragmentation
 - `--ttl-min` / `--ttl-max` : TTL variable
 - `--src-rotation-interval` : changement périodique d'IP source
+
+Le générateur est organisé en trois couches simples :
+
+- entrée : `fragmented_carpet_bombing.py` lit la CLI et construit la configuration
+- domaine : `attack_config.py`, `ip_parsing.py`, `packet_factory.py` et
+  `source_rotation.py` décrivent et fabriquent l'attaque
+- infrastructure : `traffic_sender.py` fragmente et envoie les paquets avec Scapy
+
+Scapy reste adapté aux attaques IP/ICMP/UDP/TCP et à la fragmentation. Un trafic
+HTTP réaliste devra être ajouté comme scénario applicatif séparé, en ciblant les
+services de `services/canada_services.py`, plutôt que comme un faux paquet HTTP
+dans le générateur réseau.
 
 Exemple manuel dans la console Mininet :
 
